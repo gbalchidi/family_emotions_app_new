@@ -27,6 +27,9 @@ ENV/
 env/
 .venv
 
+# Poetry
+poetry.lock
+
 # IDE
 .vscode/
 .idea/
@@ -42,22 +45,32 @@ env/
 
 # Database
 *.db
+*.sqlite
 *.sqlite3
-postgres-data/
-
-# Redis
-dump.rdb
 
 # Logs
 logs/
 *.log
 
 # Testing
-.pytest_cache/
 .coverage
+.pytest_cache/
 htmlcov/
 .tox/
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
 .hypothesis/
 
 # Docker
 docker-compose.override.yml
+
+# Alembic
+alembic/versions/*.pyc
+
+# Project specific
+data/
+tmp/
+temp/

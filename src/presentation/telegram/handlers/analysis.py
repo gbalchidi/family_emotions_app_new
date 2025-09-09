@@ -13,6 +13,7 @@ from src.infrastructure.external_services.claude_analyzer import ClaudeAnalyzer
 from src.infrastructure.persistence.analysis_repository import SqlAlchemyAnalysisRepository
 from src.infrastructure.persistence.database import database
 from src.infrastructure.persistence.user_repository import SqlAlchemyUserRepository
+from src.infrastructure.security.validators import InputValidator
 from src.presentation.telegram.keyboards import get_child_selection_keyboard
 from src.presentation.telegram.states import AnalysisStates
 
@@ -87,7 +88,7 @@ async def process_child_selection(
         service = UserService(repo)
         user = await service.get_user_by_telegram_id(callback.from_user.id)
     
-    child = user.get_child_by_id(child_id)
+    child = next((c for c in user.children if c.id == child_id), None)
     if not child:
         await callback.message.answer("Ребенок не найден.")
         await state.clear()
@@ -115,13 +116,19 @@ async def process_child_selection(
 @router.message(AnalysisStates.waiting_for_situation)
 async def process_situation(message: types.Message, state: FSMContext) -> None:
     """Process situation description and perform analysis."""
-    situation = message.text.strip()
+    # Sanitize input
+    situation = InputValidator.sanitize_text(message.text.strip(), max_length=2000)
     
     if len(situation) < 10:
         await message.answer(
             "Описание слишком короткое. "
             "Пожалуйста, опишите ситуацию более подробно (минимум 10 символов):"
         )
+        return
+    
+    # Check for potential injection attacks
+    if InputValidator.check_sql_injection(situation):
+        await message.answer("Обнаружен недопустимый контент. Попробуйте еще раз.")
         return
     
     data = await state.get_data()

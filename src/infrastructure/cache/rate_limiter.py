@@ -5,7 +5,7 @@ from uuid import UUID
 
 from redis.asyncio import Redis
 
-from src.infrastructure.config.settings import settings
+from src.config import settings
 
 
 class RedisRateLimiter:
