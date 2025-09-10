@@ -279,9 +279,13 @@ async def process_problem_type(callback: CallbackQuery, state: FSMContext) -> No
             parent_name = data.get("parent_name", "")
             
             await callback.answer()
+            # Edit message to remove inline keyboard
             await callback.message.edit_text(
                 f"Отлично, {parent_name}! Теперь я понимаю вашу ситуацию.\n\n"
-                "Все функции бота доступны вам бесплатно!\n\n"
+                "Все функции бота доступны вам бесплатно!"
+            )
+            # Send new message with reply keyboard
+            await callback.message.answer(
                 "Что хотите попробовать первым?",
                 reply_markup=main_menu_keyboard(),
             )
@@ -376,8 +380,8 @@ async def add_another_child(callback: CallbackQuery, state: FSMContext) -> None:
 
 
 @router.callback_query(OnboardingStates.waiting_for_another_child, F.data == "no")
-async def complete_onboarding(callback: CallbackQuery, state: FSMContext) -> None:
-    """Complete onboarding process."""
+async def complete_onboarding_legacy(callback: CallbackQuery, state: FSMContext) -> None:
+    """Complete onboarding process (legacy flow)."""
     data = await state.get_data()
     
     async for session in get_session():
@@ -390,12 +394,16 @@ async def complete_onboarding(callback: CallbackQuery, state: FSMContext) -> Non
             user = await user_service.complete_onboarding(complete_cmd)
 
             await callback.answer()
+            # Edit message to remove inline keyboard
             await callback.message.edit_text(
                 "🎉 Отлично! Регистрация завершена.\n\n"
                 "Теперь вы можете:\n"
-                "• Анализировать ситуации с вашим ребенком\n"
-                "• Получать персонализированные рекомендации\n"
-                "• Лучше понимать эмоции и поведение ребенка\n\n"
+                "• Переводить фразы ребенка\n"
+                "• Делать ежедневные чек-ины\n"
+                "• Лучше понимать эмоции и поведение ребенка"
+            )
+            # Send new message with reply keyboard
+            await callback.message.answer(
                 "Выберите действие:",
                 reply_markup=main_menu_keyboard(),
             )
