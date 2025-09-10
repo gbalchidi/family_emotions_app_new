@@ -13,9 +13,9 @@ from domain.value_objects import EmotionalTone, Gender
 class DomainEvent:
     """Base domain event."""
 
+    aggregate_id: UUID
     event_id: UUID = field(default_factory=uuid4)
     occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    aggregate_id: UUID = field(default=UUID(int=0))
 
     @property
     def event_name(self) -> str:
