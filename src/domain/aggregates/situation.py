@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID, uuid4
 
-from domain.events import DomainEvent, SituationAnalyzed
+from domain.domain_events import DomainEvent, SituationAnalyzed
 from domain.exceptions import InvalidSituationException
 from domain.value_objects import AnalysisResult, EmotionalTone
 

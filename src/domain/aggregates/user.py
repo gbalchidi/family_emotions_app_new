@@ -6,7 +6,7 @@ from datetime import date, datetime, timezone
 from typing import Optional
 from uuid import UUID, uuid4
 
-from domain.events import ChildAdded, DomainEvent, OnboardingCompleted, UserRegistered
+from domain.domain_events import ChildAdded, DomainEvent, OnboardingCompleted, UserRegistered
 from domain.exceptions import ChildLimitExceededException, DomainException
 from domain.value_objects import Child, Gender, TelegramUser
 
