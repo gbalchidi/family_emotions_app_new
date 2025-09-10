@@ -27,11 +27,11 @@ docker build \
 
 # Run with docker-compose
 echo "Starting services..."
-docker-compose -f docker-compose.v3.yml up -d
+docker compose -f docker-compose.v3.yml up -d
 
 # Check logs
 echo "Waiting for bot to start..."
 sleep 10
-docker-compose -f docker-compose.v3.yml logs bot --tail 20
+docker compose -f docker-compose.v3.yml logs bot --tail 20
 
 echo "✅ Deployment complete!"
