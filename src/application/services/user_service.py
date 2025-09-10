@@ -65,16 +65,31 @@ class UserService:
 
     async def complete_onboarding(self, command: CompleteOnboardingCommand) -> UserDTO:
         """Complete user onboarding."""
+        import structlog
+        logger = structlog.get_logger()
+        
         # Get user
         user = await self.user_repository.get(command.user_id)
         if not user:
             raise UserNotFoundException(str(command.user_id))
 
+        logger.info("Before complete_onboarding", 
+                   user_id=str(user.id), 
+                   onboarding_completed=user.onboarding_completed)
+
         # Complete onboarding
         user.complete_onboarding()
 
+        logger.info("After complete_onboarding", 
+                   user_id=str(user.id), 
+                   onboarding_completed=user.onboarding_completed)
+
         # Save user
         await self.user_repository.save(user)
+
+        logger.info("After save", 
+                   user_id=str(user.id), 
+                   onboarding_completed=user.onboarding_completed)
 
         return self._to_dto(user)
 

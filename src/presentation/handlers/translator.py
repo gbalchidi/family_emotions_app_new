@@ -35,6 +35,13 @@ async def start_translation(message: Message, state: FSMContext) -> None:
             get_user_cmd = GetUserCommand(telegram_id=message.from_user.id)
             user = await user_service.get_user(get_user_cmd)
             
+            logger.info(
+                "Checking user for translation",
+                telegram_id=message.from_user.id,
+                user_found=user is not None,
+                onboarding_completed=user.onboarding_completed if user else None
+            )
+            
             if not user or not user.onboarding_completed:
                 await message.answer(
                     "Пожалуйста, сначала пройдите регистрацию.\n"

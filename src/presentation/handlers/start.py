@@ -279,7 +279,14 @@ async def process_problem_type(callback: CallbackQuery, state: FSMContext) -> No
 
             # Complete onboarding
             complete_cmd = CompleteOnboardingCommand(user_id=user_id)
-            await user_service.complete_onboarding(complete_cmd)
+            completed_user = await user_service.complete_onboarding(complete_cmd)
+            
+            logger.info(
+                "Onboarding completed",
+                user_id=str(user_id),
+                onboarding_completed=completed_user.onboarding_completed,
+                children_count=len(completed_user.children)
+            )
             
             # Session will commit automatically, exit the loop
             break
