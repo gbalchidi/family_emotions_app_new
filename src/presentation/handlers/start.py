@@ -265,8 +265,12 @@ async def process_problem_type(callback: CallbackQuery, state: FSMContext) -> No
             today = date.today()
             birth_date = date(today.year - 10, today.month, today.day)
             
+            from uuid import UUID as UUIDType
+            user_id_str = data["user_id"]
+            user_id = UUIDType(user_id_str) if isinstance(user_id_str, str) else user_id_str
+            
             add_child_cmd = AddChildCommand(
-                user_id=data["user_id"],
+                user_id=user_id,
                 name=data.get("child_name", "Ребенок"),
                 birth_date=birth_date,
                 gender=Gender.OTHER,  # Default gender
@@ -274,7 +278,7 @@ async def process_problem_type(callback: CallbackQuery, state: FSMContext) -> No
             await user_service.add_child(add_child_cmd)
 
             # Complete onboarding
-            complete_cmd = CompleteOnboardingCommand(user_id=data["user_id"])
+            complete_cmd = CompleteOnboardingCommand(user_id=user_id)
             await user_service.complete_onboarding(complete_cmd)
             
             # Session will commit automatically, exit the loop
@@ -393,7 +397,7 @@ async def complete_onboarding_legacy(callback: CallbackQuery, state: FSMContext)
             user_service = UserService(user_repo)
 
             # Complete onboarding
-            complete_cmd = CompleteOnboardingCommand(user_id=data["user_id"])
+            complete_cmd = CompleteOnboardingCommand(user_id=user_id)
             user = await user_service.complete_onboarding(complete_cmd)
 
             await callback.answer()
