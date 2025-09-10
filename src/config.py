@@ -4,7 +4,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Optional
 
-from pydantic import Field, PostgresDsn, RedisDsn
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,15 +22,31 @@ class Settings(BaseSettings):
     anthropic_api_key: str = Field(description="Anthropic API key")
 
     # Database Configuration
-    database_url: PostgresDsn = Field(
-        default="postgresql+asyncpg://user:password@localhost:5432/family_emotions"
-    )
+    postgres_host: str = Field(default="localhost")
+    postgres_port: int = Field(default=5432)
+    postgres_db: str = Field(default="family_emotions")
+    postgres_user: str = Field(default="family_bot")
+    postgres_password: str = Field(default="changeme")
+    
+    @property
+    def database_url(self) -> str:
+        """Construct database URL from components."""
+        return f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+    
     database_pool_size: int = Field(default=20)
     database_max_overflow: int = Field(default=10)
     database_echo: bool = Field(default=False)
 
     # Redis Configuration
-    redis_url: RedisDsn = Field(default="redis://localhost:6379/0")
+    redis_host: str = Field(default="localhost")
+    redis_port: int = Field(default=6379)
+    redis_db: int = Field(default=0)
+    
+    @property
+    def redis_url(self) -> str:
+        """Construct Redis URL from components."""
+        return f"redis://{self.redis_host}:{self.redis_port}/{self.redis_db}"
+    
     redis_pool_size: int = Field(default=10)
 
     # Application Settings

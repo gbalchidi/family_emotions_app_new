@@ -17,6 +17,7 @@ RUN pip install --no-cache-dir \
     aiogram==3.13.0 \
     sqlalchemy[asyncio]==2.0.35 \
     asyncpg==0.29.0 \
+    psycopg2-binary==2.9.9 \
     redis==5.0.7 \
     anthropic==0.34.0 \
     pydantic==2.8.2 \
