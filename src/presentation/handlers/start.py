@@ -253,9 +253,10 @@ async def process_problem_type(callback: CallbackQuery, state: FSMContext) -> No
     
     problem_type = callback.data.split("_")[1]
     data = await state.get_data()
+    parent_name = data.get("parent_name", "")
     
-    async for session in get_session():
-        try:
+    try:
+        async for session in get_session():
             user_repo = SQLAlchemyUserRepository(session)
             user_service = UserService(user_repo)
 
@@ -275,28 +276,30 @@ async def process_problem_type(callback: CallbackQuery, state: FSMContext) -> No
             # Complete onboarding
             complete_cmd = CompleteOnboardingCommand(user_id=data["user_id"])
             await user_service.complete_onboarding(complete_cmd)
-
-            parent_name = data.get("parent_name", "")
             
-            await callback.answer()
-            # Edit message to remove inline keyboard
-            await callback.message.edit_text(
-                f"Отлично, {parent_name}! Теперь я понимаю вашу ситуацию.\n\n"
-                "Все функции бота доступны вам бесплатно!"
-            )
-            # Send new message with reply keyboard
-            await callback.message.answer(
-                "Что хотите попробовать первым?",
-                reply_markup=main_menu_keyboard(),
-            )
-            await state.clear()
+            # Session will commit automatically, exit the loop
+            break
+            
+        # Send response after session is closed
+        await callback.answer()
+        # Edit message to remove inline keyboard
+        await callback.message.edit_text(
+            f"Отлично, {parent_name}! Теперь я понимаю вашу ситуацию.\n\n"
+            "Все функции бота доступны вам бесплатно!"
+        )
+        # Send new message with reply keyboard
+        await callback.message.answer(
+            "Что хотите попробовать первым?",
+            reply_markup=main_menu_keyboard(),
+        )
+        await state.clear()
 
-        except DomainException as e:
-            logger.error("Domain error completing onboarding", error=str(e))
-            await callback.answer("Ошибка при завершении регистрации", show_alert=True)
-        except Exception as e:
-            logger.exception("Unexpected error completing onboarding")
-            await callback.answer("Произошла ошибка", show_alert=True)
+    except DomainException as e:
+        logger.error("Domain error completing onboarding", error=str(e))
+        await callback.answer("Ошибка при завершении регистрации", show_alert=True)
+    except Exception as e:
+        logger.exception("Unexpected error completing onboarding")
+        await callback.answer("Произошла ошибка", show_alert=True)
 
 
 @router.callback_query(OnboardingStates.waiting_for_child_age, F.data.startswith("age_"))

@@ -26,8 +26,8 @@ async def start_translation(message: Message, state: FSMContext) -> None:
     if not message.from_user:
         return
     
-    async for session in get_session():
-        try:
+    try:
+        async for session in get_session():
             user_repo = SQLAlchemyUserRepository(session)
             user_service = UserService(user_repo)
             
@@ -43,21 +43,22 @@ async def start_translation(message: Message, state: FSMContext) -> None:
                 return
             
             await state.update_data(user_id=str(user.id))
+            break
             
-            await message.answer(
-                "Что сказал ваш ребенок?\n\n"
-                "Отправьте мне текстовое сообщение с его словами.\n\n"
-                "Примеры фраз:\n"
-                '"Отстань от меня!"\n'
-                '"Ты ничего не понимаешь"\n'
-                '"Все нормально" (когда явно не нормально)',
-                reply_markup=cancel_keyboard(),
-            )
-            await state.set_state(TranslatorStates.waiting_for_phrase)
-            
-        except Exception as e:
-            logger.exception("Error starting translation")
-            await message.answer("Произошла ошибка. Попробуйте позже.")
+        await message.answer(
+            "Что сказал ваш ребенок?\n\n"
+            "Отправьте мне текстовое сообщение с его словами.\n\n"
+            "Примеры фраз:\n"
+            '"Отстань от меня!"\n'
+            '"Ты ничего не понимаешь"\n'
+            '"Все нормально" (когда явно не нормально)',
+            reply_markup=cancel_keyboard(),
+        )
+        await state.set_state(TranslatorStates.waiting_for_phrase)
+        
+    except Exception as e:
+        logger.exception("Error starting translation")
+        await message.answer("Произошла ошибка. Попробуйте позже.")
 
 
 @router.message(TranslatorStates.waiting_for_phrase)
