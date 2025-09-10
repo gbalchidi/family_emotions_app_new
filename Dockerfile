@@ -7,6 +7,7 @@ WORKDIR /app
 
 # Force rebuild by copying version file first
 COPY BUILD_VERSION /app/BUILD_VERSION
+COPY TEST_VERSION.txt /app/TEST_VERSION.txt
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
