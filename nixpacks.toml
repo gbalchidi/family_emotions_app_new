@@ -1,0 +1,14 @@
+# Конфигурация для Coolify/Nixpacks
+# Отключаем автоматическое определение и используем наш Dockerfile
+
+[phases.setup]
+nixPkgs = ["python311", "postgresql"]
+
+[phases.install]
+cmds = [
+    "pip install --upgrade pip",
+    "pip install aiogram==3.13.0 sqlalchemy[asyncio]==2.0.35 asyncpg==0.29.0 redis==5.0.7 anthropic==0.34.0 pydantic==2.8.2 pydantic-settings==2.4.0 alembic==1.13.2 python-dotenv==1.0.1 structlog==24.4.0"
+]
+
+[start]
+cmd = "python -m src.bot"

@@ -3,7 +3,6 @@ name = "family-emotions-light"
 version = "0.1.0"
 description = "Telegram bot for analyzing children's emotions and providing parenting recommendations"
 authors = ["Your Name <your.email@example.com>"]
-readme = "README.md"
 packages = [{include = "src"}]
 
 [tool.poetry.dependencies]

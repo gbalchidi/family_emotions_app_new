@@ -9,20 +9,27 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Poetry
-RUN pip install --no-cache-dir poetry==1.7.1
+# Copy dependency files first
+COPY pyproject.toml ./
 
-# Copy dependency files
-COPY pyproject.toml poetry.lock* ./
-
-# Install dependencies
-RUN poetry config virtualenvs.create false \
-    && poetry install --no-interaction --no-ansi --no-root
+# Install dependencies using pip directly (without poetry)
+RUN pip install --no-cache-dir \
+    aiogram==3.13.0 \
+    sqlalchemy[asyncio]==2.0.35 \
+    asyncpg==0.29.0 \
+    redis==5.0.7 \
+    anthropic==0.34.0 \
+    pydantic==2.8.2 \
+    pydantic-settings==2.4.0 \
+    alembic==1.13.2 \
+    python-dotenv==1.0.1 \
+    structlog==24.4.0
 
 # Copy application code
 COPY src ./src
 COPY alembic ./alembic
 COPY alembic.ini ./
+COPY migrations ./migrations
 
 # Create non-root user
 RUN useradd -m -u 1000 botuser && chown -R botuser:botuser /app

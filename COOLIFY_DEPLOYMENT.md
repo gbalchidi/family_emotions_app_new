@@ -1,9 +1,22 @@
 # Деплой Family Emotions Bot в Coolify
 
-## Способ 1: Все-в-одном (Рекомендуется для простоты)
+## ВАЖНО: Решение проблемы с Nixpacks
+
+Coolify по умолчанию использует Nixpacks для Python проектов, но это может вызвать проблемы. У вас есть 3 варианта:
+
+### Вариант A: Использовать Docker Compose (РЕКОМЕНДУЕТСЯ)
+В Coolify выберите тип приложения "Docker Compose" вместо "Nixpacks"
+
+### Вариант B: Использовать наш Dockerfile
+В настройках Coolify укажите Build Pack: "Dockerfile"
+
+### Вариант C: Nixpacks конфигурация
+Проект уже содержит nixpacks.toml для правильной сборки
+
+## Способ 1: Docker Compose (Рекомендуется)
 
 ### 1. В Coolify создайте новое приложение:
-- New Project → New Resource → Docker Compose
+- New Project → New Resource → **Docker Compose** (НЕ Nixpacks!)
 - Source: GitHub
 - Repository: `https://github.com/gbalchidi/family_emotions_app_new`
 
