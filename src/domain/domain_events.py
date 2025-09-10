@@ -27,7 +27,7 @@ class DomainEvent:
 class UserRegistered(DomainEvent):
     """User registered event."""
 
-    telegram_id: int
+    telegram_id: int = 0
     username: Optional[str] = None
     first_name: str = ""
     language_code: str = "en"
