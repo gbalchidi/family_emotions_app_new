@@ -8,63 +8,52 @@ services:
     environment:
       - BOT_TOKEN=${BOT_TOKEN}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-family_bot}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-family_emotions}
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_DB=${POSTGRES_DB:-family_emotions}
       - POSTGRES_USER=${POSTGRES_USER:-family_bot}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
-      - REDIS_URL=redis://redis:6379/0
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - REDIS_DB=0
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - RATE_LIMIT_DAILY=${RATE_LIMIT_DAILY:-50}
       - RATE_LIMIT_HOURLY=${RATE_LIMIT_HOURLY:-10}
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - postgres
+      - redis
     networks:
       - family-bot-network
     volumes:
       - ./logs:/app/logs
+    # Add startup delay to let databases initialize
+    command: sh -c "sleep 10 && python -m src.bot"
 
   postgres:
     image: postgres:15-alpine
-    container_name: family-emotions-postgres
     restart: unless-stopped
     environment:
       - POSTGRES_DB=${POSTGRES_DB:-family_emotions}
       - POSTGRES_USER=${POSTGRES_USER:-family_bot}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
-      - POSTGRES_HOST_AUTH_METHOD=md5
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-family_bot} -d ${POSTGRES_DB:-family_emotions}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
     networks:
       - family-bot-network
+    ports:
+      - "5432"
 
   redis:
     image: redis:7-alpine
-    container_name: family-emotions-redis
     restart: unless-stopped
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     networks:
       - family-bot-network
+    ports:
+      - "6379"
 
 volumes:
   postgres_data:

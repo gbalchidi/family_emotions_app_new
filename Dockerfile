@@ -30,10 +30,11 @@ COPY src ./src
 COPY alembic ./alembic
 COPY alembic.ini ./
 COPY migrations ./migrations
+COPY start.sh ./
 
 # Create non-root user
-RUN useradd -m -u 1000 botuser && chown -R botuser:botuser /app
+RUN useradd -m -u 1000 botuser && chown -R botuser:botuser /app && chmod +x /app/start.sh
 USER botuser
 
-# Run bot
-CMD ["python", "-m", "src.bot"]
+# Run bot with startup delay
+CMD ["/app/start.sh"]
