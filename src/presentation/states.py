@@ -8,7 +8,8 @@ class OnboardingStates(StatesGroup):
     """Onboarding states."""
 
     waiting_for_child_name = State()
-    waiting_for_child_birth_date = State()
+    waiting_for_child_birth_date = State()  # Deprecated, kept for compatibility
+    waiting_for_child_age = State()
     waiting_for_child_gender = State()
     waiting_for_another_child = State()
 

@@ -45,7 +45,7 @@ async def reset_handler(message: Message, state: FSMContext) -> None:
             user = await user_repo.get_by_telegram_id(message.from_user.id)
             if user:
                 await user_repo.delete(user.id)
-                await session.commit()
+                # Session will be committed automatically by context manager
             
             await state.clear()
             await message.answer(
@@ -129,47 +129,63 @@ async def process_child_name(message: Message, state: FSMContext) -> None:
         return
 
     await state.update_data(child_name=message.text.strip())
-    await message.answer(
-        f"Отлично! Теперь укажите дату рождения {message.text.strip()}.\n\n"
-        "Формат: ДД.ММ.ГГГГ (например, 15.03.2018)"
+    
+    # Create keyboard with age options
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text=f"{age} лет", callback_data=f"age_{age}")
+                for age in range(2, 7)
+            ],
+            [
+                InlineKeyboardButton(text=f"{age} лет", callback_data=f"age_{age}")
+                for age in range(7, 12)
+            ],
+            [
+                InlineKeyboardButton(text=f"{age} лет", callback_data=f"age_{age}")
+                for age in range(12, 17)
+            ],
+            [
+                InlineKeyboardButton(text=f"{age} лет", callback_data=f"age_{age}")
+                for age in range(17, 19)
+            ],
+        ]
     )
-    await state.set_state(OnboardingStates.waiting_for_child_birth_date)
+    
+    await message.answer(
+        f"Выберите возраст ребенка {message.text.strip()}:",
+        reply_markup=keyboard,
+    )
+    await state.set_state(OnboardingStates.waiting_for_child_age)
 
 
-@router.message(OnboardingStates.waiting_for_child_birth_date)
-async def process_child_birth_date(message: Message, state: FSMContext) -> None:
-    """Process child birth date input."""
-    if not message.text:
-        await message.answer("Пожалуйста, введите дату рождения текстом.")
+@router.callback_query(OnboardingStates.waiting_for_child_age, F.data.startswith("age_"))
+async def process_child_age(callback: CallbackQuery, state: FSMContext) -> None:
+    """Process child age selection."""
+    if not callback.data:
         return
-
-    try:
-        # Parse date
-        birth_date = datetime.strptime(message.text.strip(), "%d.%m.%Y").date()
-        
-        # Validate date
-        if birth_date > datetime.now().date():
-            await message.answer("Дата рождения не может быть в будущем. Попробуйте еще раз.")
-            return
-            
-        if birth_date < datetime(1900, 1, 1).date():
-            await message.answer("Некорректная дата. Попробуйте еще раз.")
-            return
-
-        await state.update_data(child_birth_date=birth_date.isoformat())
-        
-        data = await state.get_data()
-        await message.answer(
-            f"Укажите пол ребенка {data['child_name']}:",
-            reply_markup=gender_keyboard(),
-        )
-        await state.set_state(OnboardingStates.waiting_for_child_gender)
-
-    except ValueError:
-        await message.answer(
-            "Неверный формат даты. Пожалуйста, используйте формат ДД.ММ.ГГГГ\n"
-            "Например: 15.03.2018"
-        )
+    
+    # Extract age from callback data
+    age = int(callback.data.split("_")[1])
+    
+    # Calculate birth date from age
+    from datetime import date
+    today = date.today()
+    birth_year = today.year - age
+    birth_date = date(birth_year, today.month, today.day)
+    
+    await state.update_data(child_birth_date=birth_date.isoformat(), child_age=age)
+    
+    data = await state.get_data()
+    
+    await callback.answer()
+    await callback.message.edit_text(
+        f"Укажите пол ребенка {data['child_name']}:",
+        reply_markup=gender_keyboard(),
+    )
+    await state.set_state(OnboardingStates.waiting_for_child_gender)
 
 
 @router.callback_query(OnboardingStates.waiting_for_child_gender, F.data.startswith("gender_"))
@@ -198,18 +214,12 @@ async def process_child_gender(callback: CallbackQuery, state: FSMContext) -> No
 
             await callback.answer()
             
-            # Calculate age for display
-            from datetime import date
-            today = date.today()
-            birth_date = datetime.fromisoformat(data["child_birth_date"]).date()
-            age_years = today.year - birth_date.year
-            if today.month < birth_date.month or (today.month == birth_date.month and today.day < birth_date.day):
-                age_years -= 1
-            age_months = (today.month - birth_date.month) % 12
+            # Get age from state data
+            age = data.get("child_age", 0)
             
             await callback.message.edit_text(
                 f"✅ {child.name} добавлен(а)!\n\n"
-                f"Возраст: {age_years} лет {age_months} мес.\n\n"
+                f"Возраст: {age} лет\n\n"
                 "Хотите добавить еще одного ребенка?",
                 reply_markup=yes_no_keyboard(),
             )
