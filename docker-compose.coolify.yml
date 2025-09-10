@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
       args:
         - BUILDKIT_INLINE_CACHE=1
-    image: family-emotions-bot:latest
+    image: family-emotions-bot:v3
     container_name: family-emotions-bot
     restart: unless-stopped
     environment:

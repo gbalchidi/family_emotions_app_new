@@ -1,9 +1,12 @@
 FROM python:3.11-slim
-LABEL version="2.0"
-LABEL description="Family Emotions Bot v2 with fixes"
+LABEL version="3.0"
+LABEL description="Family Emotions Bot v3 - fixed dataclass"
 
 # Set working directory
 WORKDIR /app
+
+# Force rebuild by copying version file first
+COPY BUILD_VERSION /app/BUILD_VERSION
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
