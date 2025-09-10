@@ -1,4 +1,6 @@
 FROM python:3.11-slim
+LABEL version="2.0"
+LABEL description="Family Emotions Bot v2 with fixes"
 
 # Set working directory
 WORKDIR /app
