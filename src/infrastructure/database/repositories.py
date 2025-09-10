@@ -27,8 +27,8 @@ class SQLAlchemyUserRepository(UserRepository):
 
     async def save(self, user: User) -> None:
         """Save user aggregate."""
-        # Check if user exists
-        stmt = select(UserModel).where(UserModel.id == user.id)
+        # Check if user exists with eager loading of children
+        stmt = select(UserModel).options(selectinload(UserModel.children)).where(UserModel.id == user.id)
         result = await self.session.execute(stmt)
         db_user = result.scalar_one_or_none()
 
@@ -42,12 +42,13 @@ class SQLAlchemyUserRepository(UserRepository):
             db_user.is_active = user.is_active
             db_user.updated_at = user.updated_at
 
-            # Update children
-            existing_child_ids = {child.id for child in db_user.children}
+            # Update children - children are already loaded via selectinload
+            existing_children = list(db_user.children)  # Convert to list to avoid lazy loading
+            existing_child_ids = {child.id for child in existing_children}
             current_child_ids = {child.id for child in user.children}
 
             # Remove deleted children
-            for child in db_user.children:
+            for child in existing_children:
                 if child.id not in current_child_ids:
                     await self.session.delete(child)
 
