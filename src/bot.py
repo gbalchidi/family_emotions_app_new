@@ -17,7 +17,7 @@ sys.path.append(str(Path(__file__).parent))
 
 from config import settings
 from infrastructure.database.session import db_manager
-from presentation.handlers import analysis, start
+from presentation.handlers import analysis, start, translator
 
 # Configure structured logging
 structlog.configure(
@@ -89,6 +89,7 @@ async def main() -> None:
     
     # Register routers
     dp.include_router(start.router)
+    dp.include_router(translator.router)
     dp.include_router(analysis.router)
     
     # Start polling

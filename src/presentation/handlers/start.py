@@ -74,7 +74,7 @@ async def start_handler(message: Message, state: FSMContext) -> None:
             if user and user.onboarding_completed:
                 # User exists and completed onboarding, show main menu
                 await message.answer(
-                    f"С возвращением, {user.first_name}! 👋\n\n"
+                    f"С возвращением! 👋\n\n"
                     "Чем могу помочь сегодня?",
                     reply_markup=main_menu_keyboard(),
                 )
@@ -83,11 +83,10 @@ async def start_handler(message: Message, state: FSMContext) -> None:
                 # User exists but didn't complete onboarding
                 await state.update_data(user_id=str(user.id))
                 await message.answer(
-                    f"Привет, {user.first_name}! 👋\n\n"
-                    "Давайте завершим настройку. Для начала добавим информацию о вашем ребенке.\n\n"
-                    "Как зовут вашего ребенка?",
+                    "👋 С возвращением! Давайте завершим знакомство.\n\n"
+                    "Как вас зовут?",
                 )
-                await state.set_state(OnboardingStates.waiting_for_child_name)
+                await state.set_state(OnboardingStates.waiting_for_parent_name)
             else:
                 # Register new user
                 register_cmd = RegisterUserCommand(
@@ -102,12 +101,14 @@ async def start_handler(message: Message, state: FSMContext) -> None:
                 # Start onboarding
                 await state.update_data(user_id=str(user.id))
                 await message.answer(
-                    f"Привет, {user.first_name}! 👋\n\n"
-                    "Я помогу вам лучше понимать эмоции и поведение вашего ребенка.\n\n"
-                    "Для начала давайте добавим информацию о вашем ребенке.\n\n"
-                    "Как зовут вашего ребенка?",
+                    "👋 Привет! Я Family Emotions - ваш карманный помощник в общении с детьми.\n\n"
+                    "Я помогу вам:\n"
+                    "• Понять, что на самом деле хочет сказать ваш ребенок\n"
+                    "• Найти правильные слова в сложных ситуациях\n"
+                    "• Улучшить атмосферу в семье\n\n"
+                    "Давайте знакомиться! Как вас зовут?",
                 )
-                await state.set_state(OnboardingStates.waiting_for_child_name)
+                await state.set_state(OnboardingStates.waiting_for_parent_name)
 
         except DomainException as e:
             logger.error("Domain error in start handler", error=str(e))
@@ -121,6 +122,99 @@ async def start_handler(message: Message, state: FSMContext) -> None:
             )
 
 
+@router.message(OnboardingStates.waiting_for_parent_name)
+async def process_parent_name(message: Message, state: FSMContext) -> None:
+    """Process parent name input."""
+    if not message.text:
+        await message.answer("Пожалуйста, введите ваше имя текстом.")
+        return
+    
+    parent_name = message.text.strip()
+    if len(parent_name) < 2 or len(parent_name) > 20:
+        await message.answer("Имя должно быть от 2 до 20 символов. Попробуйте еще раз.")
+        return
+    
+    await state.update_data(parent_name=parent_name)
+    
+    # Create keyboard for children count
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="1 ребенок", callback_data="children_1"),
+                InlineKeyboardButton(text="2 детей", callback_data="children_2"),
+                InlineKeyboardButton(text="3 детей", callback_data="children_3"),
+            ],
+            [
+                InlineKeyboardButton(text="4 и более", callback_data="children_4"),
+                InlineKeyboardButton(text="Пропустить", callback_data="children_skip"),
+            ],
+        ]
+    )
+    
+    await message.answer(
+        f"Приятно познакомиться, {parent_name}!\n\n"
+        "Расскажите о вашей семье. Сколько у вас детей?",
+        reply_markup=keyboard,
+    )
+    await state.set_state(OnboardingStates.waiting_for_children_count)
+
+
+@router.callback_query(OnboardingStates.waiting_for_children_count, F.data.startswith("children_"))
+async def process_children_count(callback: CallbackQuery, state: FSMContext) -> None:
+    """Process children count selection."""
+    if not callback.data:
+        return
+    
+    count_str = callback.data.split("_")[1]
+    
+    if count_str == "skip":
+        children_count = 1  # Default to 1 child
+    else:
+        children_count = int(count_str) if count_str.isdigit() else 4
+    
+    await state.update_data(children_count=children_count)
+    
+    # Create keyboard for age selection
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="✓ 6-8 лет", callback_data="age_6_8"),
+                InlineKeyboardButton(text="✓ 9-11 лет", callback_data="age_9_11"),
+            ],
+            [
+                InlineKeyboardButton(text="✓ 12-14 лет", callback_data="age_12_14"),
+                InlineKeyboardButton(text="✓ 15-16 лет", callback_data="age_15_16"),
+            ],
+            [
+                InlineKeyboardButton(text="Готово", callback_data="age_done"),
+            ],
+        ]
+    )
+    
+    await callback.answer()
+    await callback.message.edit_text(
+        "Укажите возраст вашего ребенка/детей:\n"
+        "(Это поможет мне давать более точные советы)",
+        reply_markup=keyboard,
+    )
+    await state.set_state(OnboardingStates.waiting_for_children_ages)
+
+
+@router.callback_query(OnboardingStates.waiting_for_children_ages, F.data == "age_done")
+async def process_children_ages(callback: CallbackQuery, state: FSMContext) -> None:
+    """Process age selection completion."""
+    await callback.answer()
+    await callback.message.edit_text(
+        "Напишите, как зовут вашего ребенка\n"
+        "Я персонализирую свои советы для него/нее"
+    )
+    await state.set_state(OnboardingStates.waiting_for_child_name)
+
+
 @router.message(OnboardingStates.waiting_for_child_name)
 async def process_child_name(message: Message, state: FSMContext) -> None:
     """Process child name input."""
@@ -130,35 +224,75 @@ async def process_child_name(message: Message, state: FSMContext) -> None:
 
     await state.update_data(child_name=message.text.strip())
     
-    # Create keyboard with age options
+    # Create keyboard for problem selection
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
     
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [
-                InlineKeyboardButton(text=f"{age} лет", callback_data=f"age_{age}")
-                for age in range(2, 7)
-            ],
-            [
-                InlineKeyboardButton(text=f"{age} лет", callback_data=f"age_{age}")
-                for age in range(7, 12)
-            ],
-            [
-                InlineKeyboardButton(text=f"{age} лет", callback_data=f"age_{age}")
-                for age in range(12, 17)
-            ],
-            [
-                InlineKeyboardButton(text=f"{age} лет", callback_data=f"age_{age}")
-                for age in range(17, 19)
-            ],
+            [InlineKeyboardButton(text="😤 Постоянные конфликты", callback_data="problem_conflicts")],
+            [InlineKeyboardButton(text="🤷 Ребенок ничего не рассказывает", callback_data="problem_silence")],
+            [InlineKeyboardButton(text="📱 Зависание в телефоне", callback_data="problem_phone")],
+            [InlineKeyboardButton(text="📚 Проблемы с учебой", callback_data="problem_study")],
+            [InlineKeyboardButton(text="🚪 Хлопанье дверьми", callback_data="problem_doors")],
+            [InlineKeyboardButton(text="Все вышеперечисленное 😅", callback_data="problem_all")],
         ]
     )
     
     await message.answer(
-        f"Выберите возраст ребенка {message.text.strip()}:",
+        "С чем вам сложнее всего?",
         reply_markup=keyboard,
     )
-    await state.set_state(OnboardingStates.waiting_for_child_age)
+    await state.set_state(OnboardingStates.waiting_for_problem_type)
+
+
+@router.callback_query(OnboardingStates.waiting_for_problem_type, F.data.startswith("problem_"))
+async def process_problem_type(callback: CallbackQuery, state: FSMContext) -> None:
+    """Process problem type selection and complete onboarding."""
+    if not callback.data:
+        return
+    
+    problem_type = callback.data.split("_")[1]
+    data = await state.get_data()
+    
+    async for session in get_session():
+        try:
+            user_repo = SQLAlchemyUserRepository(session)
+            user_service = UserService(user_repo)
+
+            # Add child with default age (10 years) for now
+            from datetime import date
+            today = date.today()
+            birth_date = date(today.year - 10, today.month, today.day)
+            
+            add_child_cmd = AddChildCommand(
+                user_id=data["user_id"],
+                name=data.get("child_name", "Ребенок"),
+                birth_date=birth_date,
+                gender=Gender.OTHER,  # Default gender
+            )
+            await user_service.add_child(add_child_cmd)
+
+            # Complete onboarding
+            complete_cmd = CompleteOnboardingCommand(user_id=data["user_id"])
+            await user_service.complete_onboarding(complete_cmd)
+
+            parent_name = data.get("parent_name", "")
+            
+            await callback.answer()
+            await callback.message.edit_text(
+                f"Отлично, {parent_name}! Теперь я понимаю вашу ситуацию.\n\n"
+                "Все функции бота доступны вам бесплатно!\n\n"
+                "Что хотите попробовать первым?",
+                reply_markup=main_menu_keyboard(),
+            )
+            await state.clear()
+
+        except DomainException as e:
+            logger.error("Domain error completing onboarding", error=str(e))
+            await callback.answer("Ошибка при завершении регистрации", show_alert=True)
+        except Exception as e:
+            logger.exception("Unexpected error completing onboarding")
+            await callback.answer("Произошла ошибка", show_alert=True)
 
 
 @router.callback_query(OnboardingStates.waiting_for_child_age, F.data.startswith("age_"))

@@ -14,15 +14,14 @@ from aiogram.types import (
 from application.dto import ChildDTO
 
 
-def main_menu_keyboard() -> InlineKeyboardMarkup:
-    """Create main menu keyboard."""
+def main_menu_keyboard() -> ReplyKeyboardMarkup:
+    """Create main menu keyboard according to documentation."""
     buttons = [
-        [InlineKeyboardButton(text="💭 Анализировать ситуацию", callback_data="analyze_situation")],
-        [InlineKeyboardButton(text="📊 Мои анализы", callback_data="my_analyses")],
-        [InlineKeyboardButton(text="👶 Мои дети", callback_data="my_children")],
-        [InlineKeyboardButton(text="⚙️ Настройки", callback_data="settings")],
+        [KeyboardButton(text="💬 Перевести фразу ребенка")],
+        [KeyboardButton(text="✅ Начать ежедневный чек-ин")],
+        [KeyboardButton(text="📊 Мой профиль"), KeyboardButton(text="⚙️ Настройки")],
     ]
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
+    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
 
 
 def gender_keyboard() -> InlineKeyboardMarkup:
