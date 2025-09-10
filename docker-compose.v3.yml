@@ -23,6 +23,8 @@ services:
       dockerfile: Dockerfile
       no_cache: true
     environment:
+      PYTHONDONTWRITEBYTECODE: 1
+      PYTHONUNBUFFERED: 1
       BOT_TOKEN: ${BOT_TOKEN}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       POSTGRES_HOST: postgres
@@ -37,7 +39,7 @@ services:
       - postgres
       - redis
     restart: unless-stopped
-    command: sh -c "sleep 30 && python -m src.bot"
+    command: sh -c "find /app -name '*.pyc' -delete 2>/dev/null; find /app -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true; sleep 30 && python -m src.bot"
 
 volumes:
   postgres_data_v3:
