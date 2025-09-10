@@ -5,7 +5,7 @@ from datetime import datetime
 
 import structlog
 from aiogram import F, Router
-from aiogram.filters import CommandStart
+from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
@@ -29,6 +29,31 @@ from presentation.states import OnboardingStates
 
 logger = structlog.get_logger()
 router = Router(name="start")
+
+
+@router.message(Command("reset"))
+async def reset_handler(message: Message, state: FSMContext) -> None:
+    """Handle /reset command - clear user data and start fresh."""
+    if not message.from_user:
+        return
+    
+    async for session in get_session():
+        try:
+            user_repo = SQLAlchemyUserRepository(session)
+            
+            # Delete user if exists
+            user = await user_repo.get_by_telegram_id(message.from_user.id)
+            if user:
+                await user_repo.delete(user.id)
+                await session.commit()
+            
+            await state.clear()
+            await message.answer(
+                "✅ Данные удалены. Отправьте /start чтобы начать заново."
+            )
+        except Exception as e:
+            logger.exception("Error resetting user")
+            await message.answer("Произошла ошибка при сбросе данных.")
 
 
 @router.message(CommandStart())
@@ -172,9 +197,19 @@ async def process_child_gender(callback: CallbackQuery, state: FSMContext) -> No
             child = await user_service.add_child(add_child_cmd)
 
             await callback.answer()
+            
+            # Calculate age for display
+            from datetime import date
+            today = date.today()
+            birth_date = datetime.fromisoformat(data["child_birth_date"]).date()
+            age_years = today.year - birth_date.year
+            if today.month < birth_date.month or (today.month == birth_date.month and today.day < birth_date.day):
+                age_years -= 1
+            age_months = (today.month - birth_date.month) % 12
+            
             await callback.message.edit_text(
                 f"✅ {child.name} добавлен(а)!\n\n"
-                f"Возраст: {child.age_years} лет {child.age_months} мес.\n\n"
+                f"Возраст: {age_years} лет {age_months} мес.\n\n"
                 "Хотите добавить еще одного ребенка?",
                 reply_markup=yes_no_keyboard(),
             )
