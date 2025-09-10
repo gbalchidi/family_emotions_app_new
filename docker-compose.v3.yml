@@ -1,0 +1,44 @@
+version: '3'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: family_emotions
+      POSTGRES_USER: family_bot  
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data_v3:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data_v3:/data
+
+  bot:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      no_cache: true
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: family_emotions
+      POSTGRES_USER: family_bot
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key}
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    command: sh -c "sleep 30 && python -m src.bot"
+
+volumes:
+  postgres_data_v3:
+  redis_data_v3:
