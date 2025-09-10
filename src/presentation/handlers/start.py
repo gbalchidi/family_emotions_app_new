@@ -46,14 +46,23 @@ async def start_handler(message: Message, state: FSMContext) -> None:
             get_user_cmd = GetUserCommand(telegram_id=message.from_user.id)
             user = await user_service.get_user(get_user_cmd)
 
-            if user:
-                # User exists, show main menu
+            if user and user.onboarding_completed:
+                # User exists and completed onboarding, show main menu
                 await message.answer(
                     f"С возвращением, {user.first_name}! 👋\n\n"
                     "Чем могу помочь сегодня?",
                     reply_markup=main_menu_keyboard(),
                 )
                 await state.clear()
+            elif user and not user.onboarding_completed:
+                # User exists but didn't complete onboarding
+                await state.update_data(user_id=str(user.id))
+                await message.answer(
+                    f"Привет, {user.first_name}! 👋\n\n"
+                    "Давайте завершим настройку. Для начала добавим информацию о вашем ребенке.\n\n"
+                    "Как зовут вашего ребенка?",
+                )
+                await state.set_state(OnboardingStates.waiting_for_child_name)
             else:
                 # Register new user
                 register_cmd = RegisterUserCommand(
